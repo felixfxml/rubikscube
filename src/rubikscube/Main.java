@@ -5,8 +5,15 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 import rubikscube.algorithms.Scramble;
+import rubikscube.algorithms.Solve;
 import rubikscube.opengl.*;
 import rubikscube.util.ColorUtil;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -25,30 +32,59 @@ public class Main {
     private Cube cube;
     private Camera camera;
     private Shader shader;
-    private float rotationSpeed = 2f;
-    private Scramble s;
+    private float rotationSpeed = 20f;
+    private Scramble scramble;
+    private Solve solve;
+
+    public static Object lock;
+
+    private File log;
+    private FileWriter writer;
 
     public Main(int width, int height) {
         setWidth(width);
         setHeight(height);
         cube = new Cube(CUBE_SIZE);
         camera = new Camera(new Vector3f(0, 0, 0), new Vector3f(0, 0, 0));
-        s = new Scramble(CUBE_SIZE * 100, cube);
+        log = new File("log-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date(System.currentTimeMillis())) +  ".txt");
+        try {
+            log.createNewFile();
+            writer = new FileWriter(log);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        solve = new Solve(cube, lock, writer);
+        scramble = new Scramble(CUBE_SIZE * 10, cube, writer);
     }
 
     public static void main(String[] args) {
+        lock = new Object();
         new Main(800, 600).run();
     }
 
     public void handleInput() {
-
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(window, true);
         }
         if (!cube.isRotating()) {
-            s.next();
+
+            if (!scramble.next()) {
+                if (!solve.next()) {
+                    switch (solve.getState()) {
+                        case NEW:
+                            solve.start();
+                            break;
+                        case WAITING:
+                            synchronized (lock) {
+                                lock.notify();
+                            }
+                            break;
+                    }
+                }
+            }
+
+
             rotationStart = glfwGetTime();
-            rotationSpeed = 2f;
             if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
                 cube.setRotationAxis(0);
                 cube.setRotationColumn(0);
@@ -128,9 +164,9 @@ public class Main {
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
+        log.delete();
 
         glfwTerminate();
-
     }
 
     public void glSetup() {
@@ -174,26 +210,26 @@ public class Main {
     public void renderBlock(Block b) {
         for (int face = 0; face < b.getFaces().length; face++) {
 
-            float offset = (CUBE_SIZE - 1) * cube.len * .5f;
+            float offset = (CUBE_SIZE - 1) * Cube.len * .5f;
             Matrix4f model = new Matrix4f();
             if (cube.isRotating()) {
                 float angle = (float) Math.toRadians((glfwGetTime() - rotationStart) * 90.0f) * rotationSpeed;
                 switch (cube.getRotationAxis()) {
                     case 0:
-                        if (b.getPosition().x() == cube.getRotationColumn() * cube.len - offset)
-                            model.rotate((float) Math.min(angle, Math.toRadians(90)), 1, 0, 0);
+                        if (b.getPosition().x() == cube.getRotationColumn() * Cube.len - offset)
+                            model.rotate((float) Math.min(angle, Math.toRadians(90)), cube.getClockwise() ? 1 : -1, 0, 0);
                         break;
                     case 1:
-                        if (b.getPosition().y() == cube.getRotationColumn() * cube.len - offset)
-                            model.rotate((float) Math.min(angle, Math.toRadians(90)), 0, 1, 0);
+                        if (b.getPosition().y() == cube.getRotationColumn() * Cube.len - offset)
+                            model.rotate((float) Math.min(angle, Math.toRadians(90)), 0, cube.getClockwise() ? 1 : -1, 0);
                         break;
                     case 2:
-                        if (b.getPosition().z() == cube.getRotationColumn() * cube.len - offset)
-                            model.rotate((float) Math.min(angle, Math.toRadians(90)), 0, 0, 1);
+                        if (b.getPosition().z() == cube.getRotationColumn() * Cube.len - offset)
+                            model.rotate((float) Math.min(angle, Math.toRadians(90)), 0, 0, cube.getClockwise() ? 1 : -1);
                         break;
                 }
                 if (angle >= Math.toRadians(90)) {
-                    cube.rotate(true);
+                    cube.rotate(cube.getClockwise());
                     cube.setRotating(false);
                 }
             }
