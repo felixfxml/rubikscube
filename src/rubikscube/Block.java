@@ -3,7 +3,6 @@ package rubikscube;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class Block {
 
@@ -95,13 +94,5 @@ public class Block {
                 break;
         }
         faces = newFaces.clone();
-    }
-
-    public boolean equals(Block b) {
-        return b.getPosition().equals(position);
-    }
-
-    public int getId() {
-        return Objects.hash(getPosition().x(), getPosition().y(), getPosition().z());
     }
 }

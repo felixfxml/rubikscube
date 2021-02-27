@@ -17,7 +17,7 @@ public class Solve extends Thread {
     int moveCount = 0;
     final Object lock;
 
-    private Queue<Runnable> steps = new LinkedList<>();
+    public Queue<Runnable> steps = new LinkedList<>();
     private Cube cube;
 
     private FileWriter writer;

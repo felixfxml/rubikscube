@@ -16,6 +16,8 @@ public class Cube {
     private boolean rotating;
     private float offset;
 
+    static Cube reference = new Cube(3);
+
     public Cube(int size) {
         this.size = size;
         blocks = new Block[size][size][size];
@@ -135,15 +137,16 @@ public class Cube {
         this.rotationColumn = rotationColumn;
     }
 
-    public void setClockwise(boolean direction) {
-        this.rotationClockwise = direction;
-    }
-
     public boolean getClockwise() {
         return rotationClockwise;
     }
 
-    public boolean isSolved() {//todo
+    public void setClockwise(boolean direction) {
+        this.rotationClockwise = direction;
+    }
+
+    public boolean isSolved() {
+
         return false;
     }
 }

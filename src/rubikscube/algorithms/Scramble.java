@@ -10,7 +10,7 @@ import java.util.Random;
 
 public class Scramble {
 
-    private Queue<Runnable> steps;
+    public Queue<Runnable> steps;
     private int stepCount;
     private Random random;
     private Cube cube;
@@ -29,6 +29,10 @@ public class Scramble {
         }
         for (int i = 0; i < stepCount; i++) {
             rotateFaceCount(random.nextInt(6), random.nextInt(cube.getSize()), random.nextBoolean(), random.nextInt(2) + 1);
+            if (steps.size() >= stepCount) break;
+        }
+        while (steps.size() > stepCount) {
+            steps.poll();
         }
         try {
             this.writer.flush();

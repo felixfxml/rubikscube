@@ -1,5 +1,8 @@
 package rubikscube;
 
+import imgui.ImGui;
+import imgui.gl3.ImGuiImplGl3;
+import imgui.glfw.ImGuiImplGlfw;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -23,6 +26,8 @@ import static rubikscube.Block.*;
 public class Main {
 
     public static final int CUBE_SIZE = 3;
+    public static Object lock;
+    public float[] speed = new float[]{0.3f};
     private double rotationStart;
     private long window;
     private int width, height;
@@ -32,12 +37,13 @@ public class Main {
     private Cube cube;
     private Camera camera;
     private Shader shader;
-    private float rotationSpeed = 20f;
+    private float[] rotationSpeed = new float[]{2};
+    private Scramble s;
+    private ImGuiImplGlfw imGuiGLFW = new ImGuiImplGlfw();
+    private ImGuiImplGl3 imGuiGL3 = new ImGuiImplGl3();
+    private int[] scrambleSteps = new int[]{100};
     private Scramble scramble;
     private Solve solve;
-
-    public static Object lock;
-
     private File log;
     private FileWriter writer;
 
@@ -46,7 +52,7 @@ public class Main {
         setHeight(height);
         cube = new Cube(CUBE_SIZE);
         camera = new Camera(new Vector3f(0, 0, 0), new Vector3f(0, 0, 0));
-        log = new File("log-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date(System.currentTimeMillis())) +  ".txt");
+        log = new File("log-" + new SimpleDateFormat("dd-MM-yyyy-HH-mm-ss").format(new Date(System.currentTimeMillis())) + ".txt");
         try {
             log.createNewFile();
             writer = new FileWriter(log);
@@ -54,7 +60,9 @@ public class Main {
             e.printStackTrace();
         }
         solve = new Solve(cube, lock, writer);
-        scramble = new Scramble(CUBE_SIZE * 10, cube, writer);
+        solve.steps.clear();
+        scramble = new Scramble(scrambleSteps[0], cube, writer);
+        scramble.steps.clear();
     }
 
     public static void main(String[] args) {
@@ -65,44 +73,6 @@ public class Main {
     public void handleInput() {
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(window, true);
-        }
-        if (!cube.isRotating()) {
-
-            if (!scramble.next()) {
-                if (!solve.next()) {
-                    switch (solve.getState()) {
-                        case NEW:
-                            solve.start();
-                            break;
-                        case WAITING:
-                            synchronized (lock) {
-                                lock.notify();
-                            }
-                            break;
-                    }
-                }
-            }
-
-
-            rotationStart = glfwGetTime();
-            if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
-                cube.setRotationAxis(0);
-                cube.setRotationColumn(0);
-                rotationStart = glfwGetTime();
-                cube.setRotating(true);
-            }
-            if (glfwGetKey(window, GLFW_KEY_G) == GLFW_PRESS) {
-                cube.setRotationAxis(1);
-                cube.setRotationColumn(0);
-                rotationStart = glfwGetTime();
-                cube.setRotating(true);
-            }
-            if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS) {
-                cube.setRotationAxis(2);
-                cube.setRotationColumn(0);
-                rotationStart = glfwGetTime();
-                cube.setRotating(true);
-            }
         }
     }
 
@@ -131,23 +101,28 @@ public class Main {
 
         glSetup();
 
+        ImGui.createContext();
+        imGuiGLFW.init(window, false);
+        imGuiGL3.init("#version 330 core");
+
         glClearColor(.15f, .15f, .2f, 1.0f);
 
         while (!glfwWindowShouldClose(window)) {
 
             handleInput();
 
+            algorithms();
+
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             float distance = CUBE_SIZE * 5f;
-            float speed = .3f;
 
-            Vector3f camPos = new Vector3f((float) Math.sin(glfwGetTime() * speed) * distance, distance * .5f, (float) Math.cos(glfwGetTime() * speed) * distance);
+            Vector3f camPos = new Vector3f((float) Math.sin(glfwGetTime() * speed[0]) * distance, distance * .5f, (float) Math.cos(glfwGetTime() * speed[0]) * distance);
+
             camera.setPosition(camPos);
 
-
             Matrix4f ortho = new Matrix4f().ortho(-CUBE_SIZE, CUBE_SIZE, -CUBE_SIZE, CUBE_SIZE, 0, CUBE_SIZE * CUBE_SIZE);
-            Matrix4f projection = new Matrix4f().perspective(45, (float) getWidth() / getHeight(), .001f, distance * 2);
+            Matrix4f projection = new Matrix4f().perspective(45, (float) getWidth() / getHeight(), .001f, distance * 10);
             Matrix4f view = camera.getView();
 
             vao.bind();
@@ -161,12 +136,80 @@ public class Main {
             vao.unbind();
             ebo.unbind();
 
+            imGuiGLFW.newFrame();
+            ImGui.newFrame();
+
+            renderGui();
+
+            ImGui.render();
+            imGuiGL3.renderDrawData(ImGui.getDrawData());
+
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
         log.delete();
 
         glfwTerminate();
+        System.exit(0);
+
+    }
+
+    public void algorithms() {
+        if (!cube.isRotating()) {
+
+            if (!scramble.steps.isEmpty() && solve.steps.isEmpty()) {
+                scramble.steps.poll().run();
+            }
+            if (!solve.steps.isEmpty() && scramble.steps.isEmpty()) {
+                rotationStart = glfwGetTime();
+                solve.steps.poll().run();
+                switch (solve.getState()) {
+                    case NEW:
+                        solve.start();
+                        break;
+                    case WAITING:
+                        synchronized (lock) {
+                            lock.notify();
+                        }
+                        break;
+                }
+            }
+
+            rotationStart = glfwGetTime();
+
+        }
+    }
+
+    public void renderGui() {
+        ImGui.begin("GUI");
+
+        ImGui.sliderFloat("Camera speed", speed, -3, 3);
+
+        ImGui.sliderFloat("Rotation speed", rotationSpeed, 0.1f, 20);
+
+        ImGui.sliderInt("Scramble Step Count", scrambleSteps, 1, CUBE_SIZE*CUBE_SIZE*CUBE_SIZE*10);
+
+        if (ImGui.button("Scramble") && !cube.isRotating()) {
+            scramble = new Scramble(scrambleSteps[0], cube, writer);
+        }
+
+        if (ImGui.button("Solve") && !cube.isRotating() && !cube.isSolved()) {
+            solve = new Solve(cube, lock, writer);
+            solve.start();
+        }
+        if (ImGui.button("Reset")) {
+            cube = new Cube(CUBE_SIZE);
+        }
+
+        if (ImGui.button("Cancel")) {
+            scramble.steps.clear();
+            solve.steps.clear();
+        }
+
+        ImGui.text("Scramble Steps: " + scramble.steps.size());
+        ImGui.text("Solve Steps: " + solve.steps.size());
+
+        ImGui.end();
     }
 
     public void glSetup() {
@@ -213,7 +256,7 @@ public class Main {
             float offset = (CUBE_SIZE - 1) * Cube.len * .5f;
             Matrix4f model = new Matrix4f();
             if (cube.isRotating()) {
-                float angle = (float) Math.toRadians((glfwGetTime() - rotationStart) * 90.0f) * rotationSpeed;
+                float angle = (float) Math.toRadians((glfwGetTime() - rotationStart) * 90.0f) * rotationSpeed[0];
                 switch (cube.getRotationAxis()) {
                     case 0:
                         if (b.getPosition().x() == cube.getRotationColumn() * Cube.len - offset)
