@@ -187,7 +187,7 @@ public class Main {
 
         ImGui.sliderFloat("Rotation speed", rotationSpeed, 0.1f, 20);
 
-        ImGui.sliderInt("Scramble Step Count", scrambleSteps, 1, CUBE_SIZE*CUBE_SIZE*CUBE_SIZE*10);
+        ImGui.sliderInt("Scramble Step Count", scrambleSteps, 1, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * 10);
 
         if (ImGui.button("Scramble") && !cube.isRotating()) {
             scramble = new Scramble(scrambleSteps[0], cube, writer);
@@ -201,9 +201,11 @@ public class Main {
             cube = new Cube(CUBE_SIZE);
         }
 
-        if (ImGui.button("Cancel")) {
-            scramble.steps.clear();
-            solve.steps.clear();
+        if (!scramble.steps.isEmpty() || !solve.steps.isEmpty()) {
+            if (ImGui.button("Cancel")) {
+                scramble.steps.clear();
+                solve.steps.clear();
+            }
         }
 
         ImGui.text("Scramble Steps: " + scramble.steps.size());
