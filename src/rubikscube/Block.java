@@ -17,10 +17,6 @@ public class Block {
         System.arraycopy(color, 0, faces, 0, 6);
     }
 
-    public Block clone() {
-        return new Block(new Vector3f(getPosition()));
-    }
-
     public int[] getFaces() {
         return faces;
     }
@@ -65,6 +61,7 @@ public class Block {
         this.position = position;
     }
 
+    //"dreht" die farben wie bei einer 90° drehung
     public void rotate(int axis, boolean clockwise) {
         if (clockwise) {
             for (int i = 0; i < 3; i++) {

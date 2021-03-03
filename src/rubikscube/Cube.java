@@ -38,6 +38,7 @@ public class Cube {
         return blocks;
     }
 
+    //gibt einen würfel mit der gegebenen position zurück, falls es einen an der stelle gibt
     public Block getBlock(int[] pos) {
         Vector3f vector = new Vector3f(len * pos[0] - offset, len * pos[1] - offset, len * pos[2] - offset);
         for (int i = 0; i < size; i++) {
@@ -59,6 +60,7 @@ public class Cube {
         return size;
     }
 
+    //dreht alle einzelnen würfel in der gerade ausgewählten ebene im oder gegen den uhrzeigersinn
     public void rotate(boolean clockwise) {
         Matrix4f rotation = new Matrix4f();
         float angle = (float) PI / 2;
@@ -76,7 +78,6 @@ public class Cube {
                 rotation.rotate(angle, 0, 0, 1);
                 break;
         }
-        //float offset = (size - 1) * len * .5f;
         for (int x = 0; x < size; x++) {
             for (int y = 0; y < size; y++) {
                 for (int z = 0; z < size; z++) {
@@ -140,6 +141,7 @@ public class Cube {
         this.rotationClockwise = direction;
     }
 
+    //berechnet, ob der würfel gerade gelöst ist oder nicht
     public boolean isSolved() {
         for (int face = 0; face < 6; face++) {
             int col = 0;

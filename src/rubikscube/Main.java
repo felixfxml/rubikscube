@@ -1,13 +1,8 @@
 package rubikscube;
 
 import imgui.ImGui;
-import imgui.ImGuiIO;
-import imgui.app.Application;
-import imgui.flag.ImGuiConfigFlags;
-import imgui.flag.ImGuiInputTextFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import imgui.type.ImString;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -26,7 +21,6 @@ import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import static imgui.app.Application.launch;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
@@ -34,9 +28,10 @@ import static rubikscube.Block.*;
 
 public class Main {
 
-    public int CUBE_SIZE = 3;
     public static Object lock;
+    public int CUBE_SIZE = 3;
     public float[] speed = new float[]{0.3f};
+    int[] i = new int[]{0};
     private double rotationStart;
     private long window;
     private int width, height;
@@ -58,8 +53,6 @@ public class Main {
     private int[] cube_size_buffer = new int[]{3};
     private int steps = 0;
     private boolean advancedScramble = false;
-    int[] i = new int[]{0};
-
     //rotation
     private int face = 0;
     private int layer = 0;
@@ -77,6 +70,11 @@ public class Main {
         lock = new Object();
     }
 
+    public static void main(String[] args) {
+        lock = new Object();
+        new Main(800, 600).run();
+    }
+
     public void createLog() {
         File file = new File("rubikscube-logs");
         if (!file.exists()) {
@@ -92,18 +90,20 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        solve = new Solve(cube, lock, writer);
+        solve.steps.clear();
+        scramble = new Scramble(scrambleSteps[0], cube, writer);
+        scramble.steps.clear();
     }
 
-    public static void main(String[] args) {
-        new Main(800, 600).run();
-    }
-
+    //schließt das programm, wenn die escape taste gedrückt wird
     public void handleInput() {
         if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
             glfwSetWindowShouldClose(window, true);
         }
     }
 
+    //erstellt ein glfw fenster und führt die schleife aus, in der alle gerendert und berechnet wird
     public void run() {
         GLFWErrorCallback.createPrint(System.err).set();
 
@@ -171,6 +171,7 @@ public class Main {
 
             ImGui.render();
             imGuiGL3.renderDrawData(ImGui.getDrawData());
+
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
@@ -182,9 +183,9 @@ public class Main {
 
     }
 
+    //führt entweder den lösungsalgorithmus oder den zum zufälligen drehen aus
     public void algorithms() {
         if (!cube.isRotating()) {
-
             if (!scramble.next()) {
                 if (!solve.next()) {
                     if (solve.getState() == Thread.State.WAITING) {
@@ -194,10 +195,13 @@ public class Main {
                     }
                 }
             }
+
             rotationStart = glfwGetTime();
+
         }
     }
 
+    //rendert das gui
     public void renderGui() {
         ImGui.begin("GUI");
 
@@ -240,7 +244,7 @@ public class Main {
         ImGui.text("Clockwise:");
         ImGui.sameLine();
         if (ImGui.radioButton(String.valueOf(clockwise), clockwise)) {
-            clockwise = ! clockwise;
+            clockwise = !clockwise;
         }
 
         ImGui.text("Move Notation: " + ((layer > 0) ? layer + 1 : "") + faces[face].charAt(0) + ((!clockwise) ? "'" : ""));
@@ -281,7 +285,7 @@ public class Main {
         ImGui.sameLine();
 
         if (ImGui.radioButton("Advanced Scramble", advancedScramble)) {
-            advancedScramble = ! advancedScramble;
+            advancedScramble = !advancedScramble;
         }
         if (advancedScramble) {
             ImGui.sliderInt("Scramble Step Count", scrambleSteps, 1, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * 10);
@@ -340,6 +344,7 @@ public class Main {
         }
     }
 
+    //initialisiert den einzelnen würfel
     public void glSetup() {
         shader = new Shader("cube");
 
@@ -366,6 +371,7 @@ public class Main {
         glLineWidth(1.0f);
     }
 
+    //rendert alle würfel
     public void renderCube() {
         for (int i = 0; i < CUBE_SIZE; i++) {
             for (int j = 0; j < CUBE_SIZE; j++) {
@@ -378,6 +384,7 @@ public class Main {
         }
     }
 
+    //rendert einen einzelnen würfel
     public void renderBlock(Block b) {
         for (int face = 0; face < b.getFaces().length; face++) {
 

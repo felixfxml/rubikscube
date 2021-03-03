@@ -2,6 +2,7 @@ package rubikscube.util;
 
 public class ColorUtil {
 
+    //konvertiert eine hexadezimalzahl zu einem float array mit werten zwischen 0 und 1
     public static float[] hexToRGB(int hex) {
         float[] rgba = new float[4];
 
