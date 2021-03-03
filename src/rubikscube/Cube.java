@@ -8,15 +8,13 @@ import static java.lang.Math.PI;
 public class Cube {
 
     public static float len = 2f;
-    private Block[][][] blocks;
-    private int size;
+    private final Block[][][] blocks;
+    private final int size;
     private int rotationAxis;
     private int rotationColumn;
     private boolean rotationClockwise;
     private boolean rotating;
-    private float offset;
-
-    static Cube reference = new Cube(3);
+    private final float offset;
 
     public Cube(int size) {
         this.size = size;
@@ -30,7 +28,6 @@ public class Cube {
                             z = len * k - offset;
                     if (x == -(size - 1) || y == -(size - 1) || z == -(size - 1) || x == size - 1 || y == size - 1 || z == size - 1) {
                         blocks[i][j][k] = new Block(new Vector3f(x, y, z));
-                        //System.out.println("x: " + x + ", y: " + y + ", z: " + z);
                     }
                 }
             }
@@ -43,7 +40,6 @@ public class Cube {
 
     public Block getBlock(int[] pos) {
         Vector3f vector = new Vector3f(len * pos[0] - offset, len * pos[1] - offset, len * pos[2] - offset);
-        //System.out.println("Vector: x: " + vector.x() + ", y: " + vector.y() + ", z: " + vector.z());
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
                 for (int k = 0; k < size; k++) {
@@ -56,7 +52,6 @@ public class Cube {
                 }
             }
         }
-        //System.out.println("test");
         return null;
     }
 
@@ -146,7 +141,24 @@ public class Cube {
     }
 
     public boolean isSolved() {
+        for (int face = 0; face < 6; face++) {
+            int col = 0;
+            for (int x = 0; x < size; x++) {
+                for (int y = 0; y < size; y++) {
+                    int[] pos = new int[3];
+                    int k = face % 3;
+                    pos[k] = face < 3 ? size - 1 : 0;
+                    pos[(k + 1) % 3] = x;
+                    pos[(k + 2) % 3] = y;
+                    if (col == 0) {
+                        col = getBlock(pos).getFaces()[face];
+                    } else if (getBlock(pos).getFaces()[face] != col) {
+                        return false;
+                    }
+                }
+            }
+        }
 
-        return false;
+        return true;
     }
 }

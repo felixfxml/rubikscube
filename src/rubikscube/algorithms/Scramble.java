@@ -11,17 +11,14 @@ import java.util.Random;
 public class Scramble {
 
     public Queue<Runnable> steps;
-    private int stepCount;
-    private Random random;
-    private Cube cube;
+    private final Cube cube;
 
-    private FileWriter writer;
+    private final FileWriter writer;
     public Scramble(int stepCount, Cube c, FileWriter writer) {
         this.writer = writer;
         this.cube = c;
-        this.stepCount = stepCount;
         steps = new LinkedList<>();
-        random = new Random();
+        Random random = new Random();
         try {
             this.writer.write("scramble:\n");
         } catch (IOException e) {
@@ -33,11 +30,6 @@ public class Scramble {
         }
         while (steps.size() > stepCount) {
             steps.poll();
-        }
-        try {
-            this.writer.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
@@ -53,6 +45,7 @@ public class Scramble {
         }
         try {
             writer.write("face: " + face + ", layer: " + layer + ", clockwise: " + clockwise + ", count: " + count + "\n");
+            writer.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }

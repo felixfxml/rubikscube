@@ -2,13 +2,20 @@
   <library name="joml">
     <CLASSES>
       <root url="jar://$PROJECT_DIR$/lib/joml/joml-1.9.25.jar!/" />
+      <root url="file://$PROJECT_DIR$/lib/imgui" />
     </CLASSES>
     <JAVADOC>
       <root url="jar://$PROJECT_DIR$/lib/joml/joml-1.9.25-javadoc.jar!/" />
     </JAVADOC>
+    <NATIVE>
+      <root url="file://$PROJECT_DIR$/lib/imgui" />
+    </NATIVE>
     <SOURCES>
       <root url="jar://$PROJECT_DIR$/lib/joml/joml-1.9.25-sources.jar!/" />
       <root url="jar://$PROJECT_DIR$/lib/joml/joml-1.9.25-sources.jar!/" />
+      <root url="file://$PROJECT_DIR$/lib/imgui" />
     </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/lib/imgui" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/imgui" recursive="false" type="SOURCES" />
   </library>
 </component>

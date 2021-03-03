@@ -14,13 +14,13 @@ import static rubikscube.Block.*;
 import static rubikscube.Block.color;
 
 public class Solve extends Thread {
-    int moveCount = 0;
+    public int moveCount = 0;
     final Object lock;
 
     public Queue<Runnable> steps = new LinkedList<>();
-    private Cube cube;
+    private final Cube cube;
 
-    private FileWriter writer;
+    private final FileWriter writer;
     public Solve(Cube cube, Object lock, FileWriter writer) {
         this.writer = writer;
         this.cube = cube;
@@ -28,11 +28,10 @@ public class Solve extends Thread {
     }
 
     public void run() {
-        write("solve:\n");
         if (cube.isSolved()) {
-            System.out.println("cube is already solved");
             return;
         }
+        write("solve:");
         //getting colors
         int[] col = color.clone();
         if (cube.getSize() % 2 == 1) {
@@ -45,130 +44,8 @@ public class Solve extends Thread {
             }
         }
 
-        //solving centers & edges todo
-        if (cube.getSize() > 3 && false) {
-            //solving centers
-            for (int face_1 = 0; face_1 < 1; face_1++) {
-                int[] pos_1 = new int[3];
-                pos_1[face_1 % 3] = face_1 < 3 ? cube.getSize() - 1 : 0;
-
-                for (int x = 1; x < cube.getSize() - 1; x++) {
-                    pos_1[(face_1 + 1) % 3] = x;
-                    for (int y = 1; y < cube.getSize() - 1; y++) {
-                        pos_1[(face_1 + 2) % 3] = y;
-                        Block block_1 = cube.getBlock(pos_1);
-                        if (block_1.getFaces()[face_1] == col[0]) {
-                            continue; //skip if block already has color
-                        }
-
-                        // get matching block
-                        Block block_2 = null;
-                        int[] pos_2 = new int[3];
-                        for (int i = 4; i < 24; i++) {
-                            pos_2[0] = (i % 8 < 4 ? 0 : cube.getSize() - 1) + (i % 8 < 4 ? 1 : -1) * pos_1[(i-i%8)/8];
-                            pos_2[1] = (i % 4 == 0 || i % 4 == 3 ? 0 : cube.getSize() -1) + (i % 4 == 0 || i % 4 == 3 ? 1 : -1) * (i % 8 > 1 && i % 8 < 6 ? pos_1[(( i - i % 8) / 8 + 2) % 3] : pos_1[(( i - i % 8) / 8 + 1) % 3]);
-                            pos_2[2] = (i % 2 == 0 ? 0 : cube.getSize() -1) + (i % 2 == 0 ? 1 : -1) * (i % 8 > 1 && i % 8 < 6 ? pos_1[(( i - i % 8) / 8 + 1) % 3] : pos_1[(( i - i % 8) / 8 + 2) % 3]);
-                            block_2 = cube.getBlock(pos_2);
-                            if (block_2.getFaces()[block_2.getFacing()[0]] == col[0]) {
-                                break;
-                            }
-                        }
-                        int face_2 = block_2.getFacing()[0];
-
-                        int k_1 = (face_1 + 1) % 3 == face_2 % 3 ? (face_1 + 2) % 3 : (face_1 + 1) % 3;
-                        int k_2 = (face_1 + 1) % 3 == face_2 % 3 ? (face_1 + 1) % 3 : (face_1 + 2) % 3;
-
-                        //solve part
-                        if (x == (cube.getSize() - 1) / 2 || y == (cube.getSize() - 1) / 2) {//block is part of cross
-                            boolean bool_1 = false;
-                            if (face_1 % 3 == face_2 % 3) {
-                                if (pos_1[k_1] == (cube.getSize() - 1) / 2) {
-                                    int k_3 = k_1;
-                                    k_1 = k_2;
-                                    k_2 = k_3;
-                                }
-                            } else {
-                                if (pos_1[k_1] == (cube.getSize() - 1) / 2) {
-                                    rotateFaceCount(face_1, 0, true, 1);
-                                    bool_1 = true;
-                                    pos_1 = block_1.getPseudoPosition();
-                                }
-                            }
-                            while (pos_1[k_1] != block_2.getPseudoPosition()[k_1]) {
-                                rotateFaceCount(face_2, 0, true, 1);
-                            }
-
-                            int j = 0;
-                            while (block_2.getFacing()[0] != face_1) {
-                                this.rotateAxisCount(k_1, pos_1[k_1], true, 1);
-                                j++;
-                            }
-
-                            rotateFaceCount(face_1, 0, true, 1);
-
-                            this.rotateAxisCount(k_1, pos_1[k_1], false, j);
-                            this.rotateAxisCount(k_1, cube.getSize() - 1 - pos_1[k_1], false, j);
-
-                            rotateFaceCount(face_2, 0, true, 1);
-
-                            this.rotateAxisCount(k_1, pos_1[k_1], false, j);
-
-                            rotateFaceCount(face_2, 0, false, 1);
-
-                            this.rotateAxisCount(k_1, pos_1[k_1], true, j);
-                            this.rotateAxisCount(k_1, cube.getSize() - 1 - pos_1[k_1], true, j);
-
-                            rotateFaceCount(face_1, 0, false, bool_1 ? 2 : 1);
-                        }
-                        /*
-                        else if (x == y || x == cube.getSize() - 1 - y) {
-                            if (face_2 % 3 == face_1 % 3) {
-                                while (!(pos_1[(face_1 + 1) % 3] == block_2.getPseudoPosition()[(face_1 + 1) % 3] && pos_1[(face_1 + 2) % 3] == block_2.getPseudoPosition()[(face_1 + 2) % 3])) {
-                                    rotate(face_2, 0, true);
-                                }
-                            } else {
-                                while (!(pos_1[k_1] == block_2.getPseudoPosition()[k_1] &&
-                                        (face_1 == (block_2.getPseudoPosition()[face_1 % 3] > (cube.getSize() - 1) / 2 ? face_1 % 3 : face_1 % 3 + 3)) ==
-                                        (face_2 == (pos_1[(face_1 + k_2) % 3] > (cube.getSize() - 1) / 2 ? (face_1 + k_2) % 3 : (face_1 + k_2) % 3 +3)))) {
-                                    rotate(face_2, 0, true);
-                                }
-                            }
-                            int j = 0;
-                            while (!(block_1.getFacing()[0] == face_2)) {
-                                rotate_v2(k_1, pos_1[k_1], true);
-                                j++;
-                            }
-                            boolean bool2 = true;
-                            rotate(face_2, 0, true);
-                            if (block_1.getPseudoPosition()[k_1] != pos_1[k_1]) {
-                                rotate(face_2, 0, true);
-                                rotate(face_2, 0, true);
-                                bool2 = false;
-                            }
-
-                            for (int i = 0; i < j; i++) {
-                                rotate_v2(k_1, pos_1[k_1], false);
-                            }
-                            rotate(face_2, 0, bool2);
-
-                            for (int i = 0; i < j; i++) {
-                                rotate_v2(k_1, pos_1[k_1], true);
-                            }
-                            rotate(face_2, 0, true);
-                            rotate(face_2, 0, true);
-                            for (int i = 0; i < j; i++) {
-                                rotate_v2(k_1, pos_1[k_1], false);
-                            }
-                        }
-                        */
-                        else {//block is not part of cross
-
-                        }
-                    }
-                }
-            }
-        }
-        write("centers & edges solved\n");
+        //solve centers & edegs #1 todo
+        write("centers & edges solved");
 
         //solve like 3x3
         //solve down cross
@@ -202,7 +79,7 @@ public class Solve extends Thread {
                 }
             }
         }
-        write("down cross solved\n");
+        write("down cross solved");
 
         //solve down corners
         for (int i = 0; i < 4; i++) {
@@ -244,7 +121,7 @@ public class Solve extends Thread {
                 }
             }
         }
-        write("down corners solved\n");
+        write("down corners solved");
 
         //solve middle layer edges
         if (cube.getSize() > 2) {
@@ -287,11 +164,11 @@ public class Solve extends Thread {
                 rotateFaceCount(face_2, 0, bool, 1);
             }
         }
-        write("middle layer edges solved\n");
+        write("middle layer edges solved");
 
         //solve edges #2 todo
         if (cube.getSize() % 2 == 0 && cube.getSize() > 2) {}
-        write("edges #2 solved\n");
+        write("edges #2 solved");
 
         //solve up cross
         if (cube.getSize() > 2) {
@@ -325,7 +202,6 @@ public class Solve extends Thread {
             while (getEdge(col[FRONT], col[UP]).getPseudoPosition()[2] != cube.getSize() - 1) {
                 rotateFaceCount(UP, 0, true, 1);
             }
-            bool = false;
             if (getEdge(col[BACK], col[UP]).getPseudoPosition()[2] == 0) {
                 if (getEdge(col[LEFT], col[UP]).getPseudoPosition()[0] != 0) {
                     rotateFaceCount(RIGHT, 0, true, 1);
@@ -378,7 +254,7 @@ public class Solve extends Thread {
                 }
             }
         }
-        write("up cross solved\n");
+        write("up cross solved");
 
         //solve up corners
         boolean bool = true;
@@ -436,15 +312,6 @@ public class Solve extends Thread {
             rotateFaceCount(UP, 0, true, 1);
         }
         write("solved");
-
-        System.out.println("solved");
-        System.out.println("move count: " + moveCount);
-
-        try {
-            writer.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     private Block getEdge(int col1, int col2) {
@@ -496,11 +363,6 @@ public class Solve extends Thread {
         write("face: " + face + ", layer: " + layer + ", clockwise: " + clockwise + ", count: " + count + "\n");
     }
 
-    private void rotateAxisCount(int axis, int layer, boolean clockwise, int count) {
-        boolean bool = layer < (cube.getSize() / 2);
-        rotateFaceCount(axis + (bool ? 3 : 0), bool ? cube.getSize() - 1 - layer : layer, bool != clockwise, count);
-    }
-
     private void rotate(int axis, int layer, boolean clockwise) {
         steps.add(() -> {
             cube.setRotationAxis(axis);
@@ -513,14 +375,15 @@ public class Solve extends Thread {
             try {
                 lock.wait();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                throw new RuntimeException();
             }
         }
     }
 
     private void write(String s) {
         try {
-            writer.write(s);
+            writer.write(s + "\n");
+            writer.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
