@@ -53,12 +53,22 @@ public class Main {
     private int[] cube_size_buffer = new int[]{3};
     private int steps = 0;
     private boolean advancedScramble = false;
+    private boolean tutorial = false;
     //rotation
     private int face = 0;
     private int layer = 0;
     private boolean clockwise = true;
     private String[] faces = new String[]{"RIGHT", "UP", "FRONT", "LEFT", "DOWN", "BACK"};
+    //lang
+    private int lang = 1;
+    private static final int EN = 0;
+    private static final int DE = 1;
+    private final String[][] langs = new String[][]{{"Rubik's Cube", "Cube", "Cube Size", "Rotation Speed", "Layer:", "Face:", "Clockwise:", "Go!", "Scramble", "Solve", "Cancel", "Advanced Scramble", "Scramble Step Count",
+            "Solve Steps: ", "Your Steps: ", "Reset your steps", "Camera", "Camera Speed", "Create Logs", "Quit", "Move Notation: "},
+            {"Zauberwürfel", "Würfel", "Würfelgröße", "Rotationsgeschwindigkeit", "Schicht:", "Seite:", "Uhrzeigersinn:", "Los!", "Verdrehen", "Lösen", "Abbrechen", "Erweitertes Verdrehen", "Schrittzahl",
+                    "Lösungschritte: ", "Deine Schritte: ", "Deine Schritte Zurücksetzen", "Kamera", "Kamerageschwindigkeit", "Logs erstellen", "Beenden", "Bewegungsnotation"}};
 
+    //Konstruktor für das Main Fenster und initialisiert nötige Variablen
     public Main(int width, int height) {
         setWidth(width);
         setHeight(height);
@@ -70,11 +80,12 @@ public class Main {
         lock = new Object();
     }
 
+    //main Methode, initialisiert und startet Main;
     public static void main(String[] args) {
-        lock = new Object();
         new Main(800, 600).run();
     }
 
+    //erstellt ein Log File, welches sämtliche Rotationen des Cubes speichert
     public void createLog() {
         File file = new File("rubikscube-logs");
         if (!file.exists()) {
@@ -203,9 +214,10 @@ public class Main {
 
     //rendert das gui
     public void renderGui() {
-        ImGui.begin("GUI");
+        int langbuffer = lang;
+        ImGui.begin(langs[lang][0]);
 
-        ImGui.text("Cube");
+        ImGui.text(langs[lang][1]);
         ImGui.sameLine();
         if (ImGui.button("Reset")) {
             scramble.steps.clear();
@@ -217,22 +229,20 @@ public class Main {
             if (!logs) log.delete();
             createLog();
         }
-        ImGui.sliderInt("Cube size", cube_size_buffer, 2, 25);
-        ImGui.sliderFloat("Rotation speed", rotationSpeed, 0.1f, 20);
+        ImGui.sameLine();
+        if (ImGui.button(langbuffer == 0 ? "EN" : "DE")) {
+            if (langbuffer == DE) {
+                langbuffer = EN;
+            } else if (langbuffer == EN) {
+                langbuffer = DE;
+            }
+        }
+        ImGui.sliderInt(langs[lang][2], cube_size_buffer, 2, 25);
+        ImGui.sliderFloat(langs[lang][3], rotationSpeed, 0.1f, 20);
         ImGui.separator();
         ImGui.text("Rotation");
 
-        ImGui.text("Layer:");
-        ImGui.sameLine();
-        if (ImGui.button(String.valueOf(layer + 1))) {
-            if (layer + 2 > cube.getSize() / 2) {
-                layer = 0;
-            } else {
-                layer++;
-            }
-        }
-
-        ImGui.text("Face:");
+        ImGui.text(langs[lang][5]);
         ImGui.sameLine();
         if (ImGui.button(faces[face])) {
             if (face == 5) {
@@ -241,13 +251,24 @@ public class Main {
                 face++;
             }
         }
-        ImGui.text("Clockwise:");
+        if (CUBE_SIZE > 3) {
+            ImGui.text(langs[lang][4]);
+            ImGui.sameLine();
+            if (ImGui.button(String.valueOf(layer + 1))) {
+                if (layer + 2 > cube.getSize() / 2) {
+                    layer = 0;
+                } else {
+                    layer++;
+                }
+            }
+        }
+        ImGui.text(langs[lang][6]);
         ImGui.sameLine();
         if (ImGui.radioButton(String.valueOf(clockwise), clockwise)) {
             clockwise = !clockwise;
         }
 
-        ImGui.text("Move Notation: " + ((layer > 0) ? layer + 1 : "") + faces[face].charAt(0) + ((!clockwise) ? "'" : ""));
+        ImGui.text(langs[lang][20] + ((layer > 0) ? layer + 1 : "") + faces[face].charAt(0) + ((!clockwise) ? "'" : ""));
         ImGui.sameLine();
         if (ImGui.button("Notation help...")) {
             try {
@@ -258,25 +279,25 @@ public class Main {
             }
         }
 
-        if (ImGui.button("Execute")) {
+        if (ImGui.button(langs[lang][7])) {
             rotate(face % 3, face >= 3 ? layer : cube.getSize() - layer - 1, (face < 3) != clockwise);
             write("face: " + face + ", layer: " + layer + ", clockwise: " + clockwise + ", count: " + 1 + "\n");
         }
-        if (ImGui.button("Scramble") && !cube.isRotating()) {
+        if (ImGui.button(langs[lang][8]) && !cube.isRotating()) {
             solve.interrupt();
             solve.steps.clear();
             scramble = new Scramble(scrambleSteps[0], cube, writer);
         }
         ImGui.sameLine();
 
-        if (ImGui.button("Solve") && !cube.isSolved() && CUBE_SIZE == 3) {
+        if (ImGui.button(langs[lang][9]) && !cube.isSolved() && CUBE_SIZE == 3) {
             scramble.steps.clear();
             solve = new Solve(cube, lock, writer);
             solve.start();
         }
         ImGui.sameLine();
 
-        if (ImGui.button("Cancel")) {
+        if (ImGui.button(langs[lang][10])) {
             scramble.steps.clear();
             solve.interrupt();
             solve.steps.clear();
@@ -284,49 +305,81 @@ public class Main {
 
         ImGui.sameLine();
 
-        if (ImGui.radioButton("Advanced Scramble", advancedScramble)) {
+        if (ImGui.radioButton(langs[lang][11], advancedScramble)) {
             advancedScramble = !advancedScramble;
         }
         if (advancedScramble) {
-            ImGui.sliderInt("Scramble Step Count", scrambleSteps, 1, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * 10);
+            ImGui.sliderInt(langs[lang][12], scrambleSteps, 1, CUBE_SIZE * CUBE_SIZE * CUBE_SIZE * 10);
         }
 
-        ImGui.text("Solve Steps: " + solve.moveCount);
+        ImGui.text(langs[lang][13] + solve.moveCount);
         ImGui.sameLine();
-        ImGui.text("Your Steps: " + steps);
+        ImGui.text(langs[lang][14] + steps);
 
-        if (ImGui.button("Reset Your Steps")) {
+        if (ImGui.button(langs[lang][15])) {
             steps = 0;
         }
 
         ImGui.separator();
 
-        ImGui.text("Camera");
+        ImGui.text(langs[lang][16]);
 
-        ImGui.sliderFloat("Camera speed", speed, -3, 3);
+        ImGui.sliderFloat(langs[lang][17], speed, -3, 3);
 
         ImGui.separator();
 
-        if (ImGui.radioButton("Create logs", logs)) {
+        if (ImGui.radioButton(langs[lang][18], logs)) {
             logs = !logs;
         }
 
         ImGui.sameLine();
 
-        if (ImGui.button("Quit")) {
+        if (ImGui.button(langs[lang][19])) {
             if (!logs) log.delete();
 
             glfwTerminate();
             System.exit(0);
         }
 
-        ImGui.separator();
+        if (lang == DE) {
+            ImGui.separator();
 
-        ImGui.text("Tutorial");
+            if (ImGui.button("Tutorial")) {
+                tutorial = ! tutorial;
+            }
+
+            if (tutorial) {
+                ImGui.text("Seite - wähle die Seite, die roitert wird, aus");
+                ImGui.text("Schicht - wähle die Schicht, die rotiert wird aus \n (nur relevant bei größeren Würfeln; äußere Schicht = 1)");
+                ImGui.text("Uhrzeigersinn - wähle die Richtung, in die rotiert wird, aus \n (ausgehend von der Seite)");
+                ImGui.text("Hilfe zu den Bewegungsnotationen:");
+                ImGui.text("3x3: https://ruwix.com/the-rubiks-cube/notation/");
+                ImGui.sameLine();
+                if (ImGui.button("Öffnen...")) {
+                    try {
+                        Desktop.getDesktop().browse(new URI("https://ruwix.com/the-rubiks-cube/notation/"));
+                    } catch (IOException | URISyntaxException e) {
+                        e.printStackTrace();
+                    }
+                }
+                ImGui.text("Große Würfel: https://ruwix.com/the-rubiks-cube/notation/advanced/");
+                ImGui.sameLine();
+                if (ImGui.button("Öffnen...")) {
+                    try {
+                        Desktop.getDesktop().browse(new URI("https://ruwix.com/the-rubiks-cube/notation/advanced/"));;
+                    } catch (IOException | URISyntaxException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
 
         ImGui.end();
+
+        lang = langbuffer;
     }
 
+    //Führt vom Nutzer eingegebene Rotation aus
     private void rotate(int axis, int layer, boolean clockwise) {
         cube.setRotationAxis(axis);
         cube.setRotationColumn(layer);
@@ -335,6 +388,7 @@ public class Main {
         steps++;
     }
 
+    //loggt Nutzer Rotation
     private void write(String s) {
         try {
             writer.write(s + "\n");
@@ -557,18 +611,22 @@ public class Main {
         }
     }
 
+    //getter-Methode für Fensterbreite
     public int getWidth() {
         return width;
     }
 
+    //setter-Methode für Fensterbreite
     public void setWidth(int width) {
         this.width = width;
     }
 
+    //getter-Methode für Fensterhöhe
     public int getHeight() {
         return height;
     }
 
+    //setter-Methode für Fensterhöhe
     public void setHeight(int height) {
         this.height = height;
     }

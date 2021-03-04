@@ -12,8 +12,9 @@ public class Scramble {
 
     public Queue<Runnable> steps;
     private final Cube cube;
-
     private final FileWriter writer;
+
+    //Konstruktor, generiert stepCount zufällige Rotationen
     public Scramble(int stepCount, Cube c, FileWriter writer) {
         this.writer = writer;
         this.cube = c;
@@ -33,6 +34,7 @@ public class Scramble {
         }
     }
 
+    //Übersetzt Rotationen für Srcamble.rotate() und loggt diese
     public void rotateFaceCount(int face, int layer, boolean clockwise, int count) {
         count %= 4;
         if (count == 3) {
@@ -51,6 +53,7 @@ public class Scramble {
         }
     }
 
+    //Schreibt Rotationen in steps
     public void rotate(int axis, int layer, boolean clockwise) {
         steps.add(() -> {
             cube.setRotationAxis(axis);
@@ -60,6 +63,7 @@ public class Scramble {
         });
     }
 
+    //Abfrage für steps
     public boolean next() {
         if (!steps.isEmpty()) {
             steps.poll().run();

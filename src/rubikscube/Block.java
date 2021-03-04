@@ -21,6 +21,7 @@ public class Block {
         return faces;
     }
 
+    //gibt einen int-Array mit den Seiten, and den der Block gerade liegt, zurück
     public int[] getFacing() {
         ArrayList<Integer> ret = new ArrayList<>(3);
         float k = Math.max(Math.abs(position.x()), Math.max(Math.abs(position.y()), Math.abs(position.z())));
@@ -44,6 +45,7 @@ public class Block {
         return ret2;
     }
 
+    //gibt die Position als int[]{x, y, z} zurück, wobei der Block links hinten unten die Koordinaten (0, 0, 0) hat (Ist einfacher zu rechnen als mit Vector3f)
     public int[] getPseudoPosition() {
         int[] ret = new int[3];
         float k = Math.max(Math.abs(position.x()), Math.max(Math.abs(position.y()), Math.abs(position.z())));

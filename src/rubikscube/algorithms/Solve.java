@@ -16,17 +16,18 @@ import static rubikscube.Block.color;
 public class Solve extends Thread {
     public int moveCount = 0;
     final Object lock;
-
     public Queue<Runnable> steps = new LinkedList<>();
     private final Cube cube;
-
     private final FileWriter writer;
+
+    //Konstruktor für Thread Solve
     public Solve(Cube cube, Object lock, FileWriter writer) {
         this.writer = writer;
         this.cube = cube;
         this.lock = lock;
     }
 
+    //run Methode des Solve Thread, löst Würfel
     public void run() {
         if (cube.isSolved()) {
             return;
@@ -45,7 +46,7 @@ public class Solve extends Thread {
         }
 
         //solve centers & edegs #1 todo
-        write("centers & edges solved");
+        //write("centers & edges solved");
 
         //solve like 3x3
         //solve down cross
@@ -314,6 +315,7 @@ public class Solve extends Thread {
         write("solved");
     }
 
+    //gibt eine Kante mit den Farben col1 und col2 zurück
     private Block getEdge(int col1, int col2) {
         ArrayList<Integer> test = new ArrayList<>(2);
         test.add(col1);
@@ -332,6 +334,7 @@ public class Solve extends Thread {
         return null;
     }
 
+    //gibt die Ecke mit den Farben col1, col2 und col3 zurück
     private Block getCorner(int col1, int col2, int col3) {
         ArrayList<Integer> test = new ArrayList<>(3);
         test.add(col1);
@@ -350,6 +353,7 @@ public class Solve extends Thread {
         return null;
     }
 
+    //Übersetzt Rotationen für Solve.rotate()
     private void rotateFaceCount(int face, int layer, boolean clockwise, int count) {
         count %= 4;
         if (count == 3) {
@@ -363,6 +367,7 @@ public class Solve extends Thread {
         write("face: " + face + ", layer: " + layer + ", clockwise: " + clockwise + ", count: " + count + "\n");
     }
 
+    //schreibt Rotationen in steps
     private void rotate(int axis, int layer, boolean clockwise) {
         steps.add(() -> {
             cube.setRotationAxis(axis);
@@ -380,6 +385,7 @@ public class Solve extends Thread {
         }
     }
 
+    //schreibt String s in das log-file
     private void write(String s) {
         try {
             writer.write(s + "\n");
@@ -389,6 +395,7 @@ public class Solve extends Thread {
         }
     }
 
+    //Abfrage für steps
     public boolean next() {
         if (!steps.isEmpty()) {
             steps.poll().run();
